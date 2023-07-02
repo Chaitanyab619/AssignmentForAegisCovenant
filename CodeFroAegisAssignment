@@ -1,0 +1,45 @@
+const puppeteer = require('puppeteer');
+
+async function runFlightPriceTest(source, destination, date) {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+
+  try {
+    // Navigate to Google Flights
+    await page.goto('https://www.google.com/flights');
+
+    // Fill in source, destination, and date
+    await page.type('[aria-label="Leaving from"] input', source);
+    await page.type('[aria-label="Going to"] input', destination);
+    await page.click('[aria-label="Departure date"]');
+    await page.type('[aria-label="Departure date"]', date);
+    await page.keyboard.press('Enter');
+
+    // Wait for flight search results
+    await page.waitForSelector('.gws-flights-results__price');
+
+    // Extract flight prices
+    const prices = await page.evaluate(() => {
+      const results = {};
+      const airlines = document.querySelectorAll('.gws-flights-results__carriers');
+      const prices = document.querySelectorAll('.gws-flights-results__price');
+      for (let i = 0; i < airlines.length; i++) {
+        const airline = airlines[i].innerText;
+        const price = prices[i].innerText;
+        results[airline] = price;
+      }
+      return results;
+    });
+
+    // Print the flight prices
+    console.log(prices);
+  } catch (error) {
+    console.error('An error occurred:', error);
+  } finally {
+    // Close the browser
+    await browser.close();
+  }
+}
+
+// Example usage
+runFlightPriceTest('Delhi', 'Jaipur', '15 April 2023');
